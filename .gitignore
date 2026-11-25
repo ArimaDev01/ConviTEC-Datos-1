@@ -1,0 +1,16 @@
+# Compilación de Maven
+target/
+
+# Datos que genera cada sede al correr (no se suben)
+data/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Sistema operativo
+.DS_Store
