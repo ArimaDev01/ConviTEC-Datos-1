@@ -66,13 +66,15 @@ class AlmacenJsonTest {
     }
 
     @Test
-    void guardarDeNuevoReemplazaElContenido() {
+    void guardarDeNuevoReemplazaElContenido() throws IOException {
         almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001"), pedido("ALA-0002")});
         almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0003")});
         Pedido[] cargados = almacen.cargar("pedidos.json", Pedido[].class);
         assertEquals(1, cargados.length);
         assertEquals("ALA-0003", cargados[0].getId());
-        assertFalse(Files.exists(tmp.resolve("ALA").resolve("pedidos.json.tmp")));
+        try (var archivos = Files.list(tmp.resolve("ALA"))) {
+            assertEquals(0, archivos.filter(p -> p.toString().endsWith(".tmp")).count(), "no quedan temporales");
+        }
     }
 
     @Test
@@ -91,9 +93,39 @@ class AlmacenJsonTest {
     }
 
     @Test
-    void archivoDanadoDevuelveArregloVacio() throws IOException {
-        Files.writeString(tmp.resolve("ALA").resolve("pedidos.json"), "{ esto no es json [[[");
+    void archivoDanadoDevuelveArregloVacioYSeAparta() throws IOException {
+        Path carpeta = tmp.resolve("ALA");
+        Files.writeString(carpeta.resolve("pedidos.json"), "{ esto no es json [[[");
         assertEquals(0, almacen.cargar("pedidos.json", Pedido[].class).length);
+
+        // El contenido dañado queda en pedidos.json.danado y el siguiente guardar no lo pisa.
+        assertEquals("{ esto no es json [[[", Files.readString(carpeta.resolve("pedidos.json.danado")));
+        almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001")});
+        assertEquals("{ esto no es json [[[", Files.readString(carpeta.resolve("pedidos.json.danado")));
+    }
+
+    @Test
+    void guardadosAlMismoTiempoNoFallanNiDananElArchivo() throws Exception {
+        Throwable[] primerError = new Throwable[1];
+        Thread[] hilos = new Thread[4];
+        for (int h = 0; h < hilos.length; h++) {
+            hilos[h] = new Thread(() -> {
+                try {
+                    for (int i = 0; i < 50; i++) {
+                        almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001"), pedido("ALA-0002")});
+                    }
+                } catch (Throwable e) {
+                    primerError[0] = e; // una excepción dentro de un hilo no llega sola a JUnit
+                }
+            });
+            hilos[h].start();
+        }
+        for (Thread hilo : hilos) {
+            hilo.join();
+        }
+        assertNull(primerError[0], () -> "un guardado falló: " + primerError[0]);
+        assertEquals(2, almacen.cargar("pedidos.json", Pedido[].class).length);
+        assertFalse(almacen.existe("pedidos.json.danado"));
     }
 
     @Test

@@ -52,8 +52,9 @@ public class AlmacenJson {
             throw new IllegalArgumentException("No se puede guardar null en " + archivo);
         }
         Path destino = carpeta.resolve(archivo);
-        Path temporal = carpeta.resolve(archivo + ".tmp");
         try {
+            // Nombre único: dos hilos guardando el mismo archivo no se pisan el temporal.
+            Path temporal = Files.createTempFile(carpeta, archivo, ".tmp");
             Files.writeString(temporal, gson.toJson(datos), StandardCharsets.UTF_8);
             Files.move(temporal, destino, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
@@ -63,8 +64,8 @@ public class AlmacenJson {
 
     /**
      * Lee el arreglo guardado. Si el archivo no existe, está vacío o está dañado,
-     * devuelve un arreglo vacío (y avisa en consola si estaba dañado), para que
-     * la sede pueda arrancar igual.
+     * devuelve un arreglo vacío para que la sede pueda arrancar igual. Si estaba
+     * dañado, lo renombra a "archivo.danado" y avisa en consola.
      */
     @SuppressWarnings("unchecked")
     public <T> T[] cargar(String archivo, Class<T[]> tipo) {
@@ -77,7 +78,14 @@ public class AlmacenJson {
             T[] datos = gson.fromJson(Files.readString(origen, StandardCharsets.UTF_8), tipo);
             return datos == null ? vacio : datos;
         } catch (JsonParseException e) {
-            System.err.println("Aviso: " + origen + " está dañado y se ignora (" + e.getMessage() + ")");
+            // Se aparta el archivo dañado para que el próximo guardar no lo sobrescriba y se pueda rescatar a mano.
+            Path apartado = carpeta.resolve(archivo + ".danado");
+            System.err.println("Aviso: " + origen + " está dañado; se movió a " + apartado + " (" + e.getMessage() + ")");
+            try {
+                Files.move(origen, apartado, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException errorAlMover) {
+                System.err.println("Aviso: no se pudo apartar " + origen + " (" + errorAlMover.getMessage() + ")");
+            }
             return vacio;
         } catch (IOException e) {
             System.err.println("Aviso: no se pudo leer " + origen + " (" + e.getMessage() + ")");
