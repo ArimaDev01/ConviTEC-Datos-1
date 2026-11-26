@@ -52,19 +52,23 @@ public class AlmacenJson {
             throw new IllegalArgumentException("No se puede guardar null en " + archivo);
         }
         Path destino = carpeta.resolve(archivo);
-        Path temporal = carpeta.resolve(archivo + ".tmp");
+        Path temporal = null;
         try {
+            // Nombre único: dos hilos guardando el mismo archivo no se pisan el temporal.
+            temporal = Files.createTempFile(carpeta, archivo, ".tmp");
             Files.writeString(temporal, gson.toJson(datos), StandardCharsets.UTF_8);
             Files.move(temporal, destino, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
+            borrarSinFallar(temporal);
             throw new UncheckedIOException("No se pudo guardar " + destino, e);
         }
     }
 
     /**
-     * Lee el arreglo guardado. Si el archivo no existe, está vacío o está dañado,
-     * devuelve un arreglo vacío (y avisa en consola si estaba dañado), para que
-     * la sede pueda arrancar igual.
+     * Lee el arreglo guardado. Si el archivo no existe o está vacío, devuelve un
+     * arreglo vacío para que la sede pueda arrancar igual. Si está dañado o no se
+     * puede leer (por ejemplo, no está en UTF-8), lo renombra a "archivo.danado",
+     * avisa en consola y también devuelve un arreglo vacío.
      */
     @SuppressWarnings("unchecked")
     public <T> T[] cargar(String archivo, Class<T[]> tipo) {
@@ -76,12 +80,27 @@ public class AlmacenJson {
         try {
             T[] datos = gson.fromJson(Files.readString(origen, StandardCharsets.UTF_8), tipo);
             return datos == null ? vacio : datos;
-        } catch (JsonParseException e) {
-            System.err.println("Aviso: " + origen + " está dañado y se ignora (" + e.getMessage() + ")");
+        } catch (JsonParseException | IOException e) {
+            // Se aparta el archivo para que el próximo guardar no lo sobrescriba y se pueda rescatar a mano.
+            Path apartado = carpeta.resolve(archivo + ".danado");
+            System.err.println("Aviso: no se pudo leer " + origen + "; se movió a " + apartado + " (" + e.getMessage() + ")");
+            try {
+                Files.move(origen, apartado, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException errorAlMover) {
+                System.err.println("Aviso: no se pudo apartar " + origen + " (" + errorAlMover.getMessage() + ")");
+            }
             return vacio;
-        } catch (IOException e) {
-            System.err.println("Aviso: no se pudo leer " + origen + " (" + e.getMessage() + ")");
-            return vacio;
+        }
+    }
+
+    private static void borrarSinFallar(Path archivo) {
+        if (archivo == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(archivo);
+        } catch (IOException ignorado) {
+            // Si no se puede borrar el temporal, el error importante ya se está reportando.
         }
     }
 

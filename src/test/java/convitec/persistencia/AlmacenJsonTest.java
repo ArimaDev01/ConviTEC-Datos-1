@@ -66,13 +66,15 @@ class AlmacenJsonTest {
     }
 
     @Test
-    void guardarDeNuevoReemplazaElContenido() {
+    void guardarDeNuevoReemplazaElContenido() throws IOException {
         almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001"), pedido("ALA-0002")});
         almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0003")});
         Pedido[] cargados = almacen.cargar("pedidos.json", Pedido[].class);
         assertEquals(1, cargados.length);
         assertEquals("ALA-0003", cargados[0].getId());
-        assertFalse(Files.exists(tmp.resolve("ALA").resolve("pedidos.json.tmp")));
+        try (var archivos = Files.list(tmp.resolve("ALA"))) {
+            assertEquals(0, archivos.filter(p -> p.toString().endsWith(".tmp")).count(), "no quedan temporales");
+        }
     }
 
     @Test
@@ -91,9 +93,65 @@ class AlmacenJsonTest {
     }
 
     @Test
-    void archivoDanadoDevuelveArregloVacio() throws IOException {
-        Files.writeString(tmp.resolve("ALA").resolve("pedidos.json"), "{ esto no es json [[[");
+    void archivoDanadoDevuelveArregloVacioYSeAparta() throws IOException {
+        Path carpeta = tmp.resolve("ALA");
+        Files.writeString(carpeta.resolve("pedidos.json"), "{ esto no es json [[[");
         assertEquals(0, almacen.cargar("pedidos.json", Pedido[].class).length);
+
+        // El contenido dañado queda en pedidos.json.danado y el siguiente guardar no lo pisa.
+        assertEquals("{ esto no es json [[[", Files.readString(carpeta.resolve("pedidos.json.danado")));
+        almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001")});
+        assertEquals("{ esto no es json [[[", Files.readString(carpeta.resolve("pedidos.json.danado")));
+    }
+
+    @Test
+    void archivoQueNoEstaEnUtf8SeApartaYNoSePierde() throws IOException {
+        // Como si alguien lo editara en el Bloc de notas y lo guardara en ANSI, con una tilde.
+        Path carpeta = tmp.resolve("ALA");
+        byte[] ansi = "[{\"codigo\":\"P01\",\"nombre\":\"Limón\",\"precio\":5}]".getBytes("ISO-8859-1");
+        Files.write(carpeta.resolve("productos.json"), ansi);
+
+        assertEquals(0, almacen.cargar("productos.json", Producto[].class).length);
+        almacen.guardar("productos.json", new Producto[0]);
+        assertArrayEquals(ansi, Files.readAllBytes(carpeta.resolve("productos.json.danado")));
+    }
+
+    @Test
+    void siFallaElGuardadoNoQuedaElTemporal() throws IOException {
+        // Una carpeta con contenido en el lugar del archivo hace que el renombre falle.
+        Path carpeta = tmp.resolve("ALA");
+        Files.createDirectories(carpeta.resolve("pedidos.json"));
+        Files.writeString(carpeta.resolve("pedidos.json").resolve("algo.txt"), "x");
+
+        assertThrows(java.io.UncheckedIOException.class,
+                () -> almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001")}));
+        try (var archivos = Files.list(carpeta)) {
+            assertEquals(0, archivos.filter(p -> p.toString().endsWith(".tmp")).count(), "no quedan temporales");
+        }
+    }
+
+    @Test
+    void guardadosAlMismoTiempoNoFallanNiDananElArchivo() throws Exception {
+        Throwable[] primerError = new Throwable[1];
+        Thread[] hilos = new Thread[4];
+        for (int h = 0; h < hilos.length; h++) {
+            hilos[h] = new Thread(() -> {
+                try {
+                    for (int i = 0; i < 50; i++) {
+                        almacen.guardar("pedidos.json", new Pedido[]{pedido("ALA-0001"), pedido("ALA-0002")});
+                    }
+                } catch (Throwable e) {
+                    primerError[0] = e; // una excepción dentro de un hilo no llega sola a JUnit
+                }
+            });
+            hilos[h].start();
+        }
+        for (Thread hilo : hilos) {
+            hilo.join();
+        }
+        assertNull(primerError[0], () -> "un guardado falló: " + primerError[0]);
+        assertEquals(2, almacen.cargar("pedidos.json", Pedido[].class).length);
+        assertFalse(almacen.existe("pedidos.json.danado"));
     }
 
     @Test
