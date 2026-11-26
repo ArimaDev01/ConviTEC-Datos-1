@@ -1,0 +1,6 @@
+[
+  {"codigo": "LIB", "nombre": "Liberia", "ubicacion": "Liberia", "puerto": 7001},
+  {"codigo": "ALA", "nombre": "Alajuela", "ubicacion": "Alajuela", "puerto": 7002},
+  {"codigo": "SJO", "nombre": "San José", "ubicacion": "San José", "puerto": 7003},
+  {"codigo": "LIM", "nombre": "Limón", "ubicacion": "Limón", "puerto": 7004}
+]
