@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ConviTEC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="marca">
+      <span class="logo">ConviTEC</span>
+      <span id="sede" class="sede">Cargando sede…</span>
+    </div>
+    <div class="estado">
+      <span id="demo" class="aviso" hidden>Datos falsos</span>
+      <span class="reloj" title="Hora virtual de la sede">🕒 <span id="hora">--:--</span></span>
+    </div>
+  </header>
+
+  <nav class="pestanas" id="pestanas">
+    <button data-tab="catalogo" class="activa">Catálogo global</button>
+    <button data-tab="inventario">Inventario local</button>
+    <button data-tab="pedido">Nuevo pedido</button>
+    <button data-tab="pedidos">Pedidos</button>
+    <button data-tab="entregas">Entregas</button>
+    <button data-tab="ventas">Ventas y estadísticas</button>
+  </nav>
+
+  <main>
+    <div id="mensaje" class="mensaje" hidden></div>
+
+    <!-- 1. Catálogo global -->
+    <section id="tab-catalogo" class="tab activa">
+      <div class="encabezado">
+        <h2>Catálogo global</h2>
+        <input id="filtro-catalogo" type="search" placeholder="Buscar por código, nombre o categoría">
+      </div>
+      <p class="ayuda">Existencias de cada producto en todas las sedes. La columna resaltada es esta sede.</p>
+      <div class="tabla-envoltura"><table id="tabla-catalogo"></table></div>
+    </section>
+
+    <!-- 2. Inventario local -->
+    <section id="tab-inventario" class="tab">
+      <div class="encabezado"><h2>Inventario local</h2></div>
+      <p class="ayuda">Solo esta sede modifica su existencia; las demás se enteran por mensajes.</p>
+      <div class="tabla-envoltura"><table id="tabla-inventario"></table></div>
+    </section>
+
+    <!-- 3. Nuevo pedido -->
+    <section id="tab-pedido" class="tab">
+      <div class="encabezado"><h2>Nuevo pedido</h2></div>
+      <form id="form-linea" class="fila-form">
+        <label>Producto
+          <select id="pedido-producto" required></select>
+        </label>
+        <label class="corto">Cantidad
+          <input id="pedido-cantidad" type="number" min="1" value="1" required>
+        </label>
+        <button type="submit" class="secundario">Agregar línea</button>
+      </form>
+      <div class="tabla-envoltura"><table id="tabla-lineas"></table></div>
+      <form id="form-pedido" class="fila-form">
+        <label>Punto de entrega
+          <select id="pedido-destino"></select>
+        </label>
+        <label class="casilla">
+          <input id="pedido-mostrador" type="checkbox"> Venta de mostrador (se entrega aquí, sin ruta)
+        </label>
+        <button type="submit" class="principal">Registrar pedido</button>
+      </form>
+      <div id="resultado-pedido"></div>
+    </section>
+
+    <!-- 4. Pedidos -->
+    <section id="tab-pedidos" class="tab">
+      <div class="encabezado"><h2>Pedidos pendientes de entrega</h2></div>
+      <div class="tabla-envoltura"><table id="tabla-pendientes"></table></div>
+      <div class="encabezado"><h2>Historial de pedidos</h2></div>
+      <div class="tabla-envoltura"><table id="tabla-historial"></table></div>
+    </section>
+
+    <!-- 5. Entregas -->
+    <section id="tab-entregas" class="tab">
+      <div class="encabezado">
+        <h2>Entregas</h2>
+        <button id="btn-siguiente" class="principal">Calcular siguiente punto de entrega</button>
+      </div>
+      <p class="ayuda">Cada clic ejecuta Dijkstra desde la ubicación actual del vehículo y entrega en el destino pendiente más cercano.</p>
+      <div id="ultimo-paso"></div>
+      <div id="recorridos"></div>
+    </section>
+
+    <!-- 6. Ventas y estadísticas -->
+    <section id="tab-ventas" class="tab">
+      <div class="tarjetas" id="tarjetas"></div>
+      <div class="dos-columnas">
+        <div>
+          <h2>Más vendidos</h2>
+          <div class="tabla-envoltura"><table id="tabla-mas-vendidos"></table></div>
+        </div>
+        <div>
+          <h2>Peores pedidos</h2>
+          <p class="ayuda">Rendimiento = monto de venta (₡) / tiempo de traslado (min). Sin ventas de mostrador.</p>
+          <div class="tabla-envoltura"><table id="tabla-peores"></table></div>
+        </div>
+      </div>
+      <h2>Historial de ventas</h2>
+      <div class="tabla-envoltura"><table id="tabla-ventas"></table></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
