@@ -1,0 +1,18 @@
+[
+  {"codigo": "P01", "nombre": "Agua 600 ml", "descripcion": "Agua purificada", "categoria": "Bebidas", "precio": 650, "existencias": [20, 15, 30, 10]},
+  {"codigo": "P02", "nombre": "Café molido 250 g", "descripcion": "Café tostado de altura", "categoria": "Abarrotes", "precio": 2450, "existencias": [5, 12, 0, 8]},
+  {"codigo": "P03", "nombre": "Galletas de soda", "descripcion": "Paquete de 6 unidades", "categoria": "Snacks", "precio": 900, "existencias": [10, 0, 25, 4]},
+  {"codigo": "P04", "nombre": "Leche 1 L", "descripcion": "Leche semidescremada", "categoria": "Lácteos", "precio": 1100, "existencias": [0, 18, 14, 6]},
+  {"codigo": "P05", "nombre": "Arroz 1 kg", "descripcion": "Arroz 99 % grano entero", "categoria": "Abarrotes", "precio": 1350, "existencias": [8, 9, 20, 0]},
+  {"codigo": "P06", "nombre": "Refresco 2 L", "descripcion": "Refresco de cola", "categoria": "Bebidas", "precio": 1600, "existencias": [12, 6, 0, 9]},
+  {"codigo": "P07", "nombre": "Papas tostadas", "descripcion": "Bolsa de 150 g", "categoria": "Snacks", "precio": 1200, "existencias": [0, 7, 11, 3]},
+  {"codigo": "P08", "nombre": "Queso fresco 500 g", "descripcion": "Queso tierno", "categoria": "Lácteos", "precio": 2800, "existencias": [4, 0, 5, 2]},
+  {"codigo": "P09", "nombre": "Jugo de naranja 1 L", "descripcion": "Jugo natural sin azúcar", "categoria": "Bebidas", "precio": 1450, "existencias": [6, 10, 8, 0]},
+  {"codigo": "P10", "nombre": "Frijoles negros 800 g", "descripcion": "Frijoles en bolsa", "categoria": "Abarrotes", "precio": 1250, "existencias": [15, 4, 10, 12]},
+  {"codigo": "P11", "nombre": "Maní salado", "descripcion": "Bolsa de 100 g", "categoria": "Snacks", "precio": 750, "existencias": [9, 14, 0, 6]},
+  {"codigo": "P12", "nombre": "Yogur de fresa 1 L", "descripcion": "Yogur bebible", "categoria": "Lácteos", "precio": 1700, "existencias": [3, 8, 12, 0]},
+  {"codigo": "P13", "nombre": "Té frío 500 ml", "descripcion": "Té negro con limón", "categoria": "Bebidas", "precio": 800, "existencias": [0, 20, 6, 15]},
+  {"codigo": "P14", "nombre": "Azúcar 1 kg", "descripcion": "Azúcar blanca", "categoria": "Abarrotes", "precio": 1000, "existencias": [10, 0, 18, 7]},
+  {"codigo": "P15", "nombre": "Chocolate en barra", "descripcion": "Chocolate con leche 45 g", "categoria": "Snacks", "precio": 600, "existencias": [25, 10, 0, 20]},
+  {"codigo": "P16", "nombre": "Mantequilla 250 g", "descripcion": "Mantequilla con sal", "categoria": "Lácteos", "precio": 1900, "existencias": [0, 5, 9, 4]}
+]

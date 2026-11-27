@@ -1,0 +1,7 @@
+{
+  "rabbitHost": "localhost",
+  "rabbitPuerto": 5672,
+  "rabbitUsuario": "convitec",
+  "rabbitClave": "convitec",
+  "carpetaDatos": "data"
+}

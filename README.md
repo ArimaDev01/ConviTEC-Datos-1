@@ -64,11 +64,76 @@ java -jar target/convitec.jar ALA --demo
 ### Las 4 sedes en 2 computadoras
 
 1. Instalar RabbitMQ en la computadora A y crear el usuario `convitec` (el usuario `guest` solo funciona en `localhost`).
-   *Pasos detallados: pendiente (P3).*
+   Pasos en [Instalar RabbitMQ](#instalar-rabbitmq).
 2. En las dos computadoras, poner en `config/app.json` la IP de la computadora A como `rabbitHost`.
 3. Computadora A: `java -jar target/convitec.jar LIB` y `java -jar target/convitec.jar ALA`.
 4. Computadora B: `java -jar target/convitec.jar SJO` y `java -jar target/convitec.jar LIM`.
 5. Abrir la página de cada sede en `http://<ip-de-la-computadora>:<puerto>`.
+
+## Instalar RabbitMQ
+
+RabbitMQ se instala **solo en una computadora** (la A). Las 4 sedes, estén en la A o en la B, se conectan a ella.
+
+**Windows**
+
+1. Instalar [Erlang/OTP](https://www.erlang.org/downloads) (RabbitMQ lo necesita) y después el instalador de
+   [RabbitMQ para Windows](https://www.rabbitmq.com/docs/install-windows). Queda corriendo como servicio.
+2. Abrir *RabbitMQ Command Prompt (sbin dir)* como administrador.
+
+**Linux (Ubuntu / Debian)**
+
+```bash
+sudo apt install rabbitmq-server
+sudo systemctl enable --now rabbitmq-server
+```
+
+**macOS**: `brew install rabbitmq` y `brew services start rabbitmq`.
+
+**Crear el usuario `convitec`** (en la misma consola, con `sudo` en Linux):
+
+```bash
+rabbitmqctl add_user convitec convitec
+rabbitmqctl set_permissions -p / convitec ".*" ".*" ".*"
+rabbitmqctl set_user_tags convitec administrator   # opcional: permite entrar a la consola web
+```
+
+El usuario y la clave tienen que ser los mismos de `config/app.json` (`rabbitUsuario` y `rabbitClave`).
+
+**Dejar pasar las conexiones de la computadora B**: abrir el puerto TCP **5672** en el firewall de la
+computadora A (en Windows: *Firewall de Windows Defender → Reglas de entrada → Nueva regla → Puerto 5672*).
+Las dos computadoras deben estar en la misma red; la IP de la A se ve con `ipconfig` (Windows) o `ip addr` (Linux).
+
+**Probar** (opcional): con el plugin de administración (`rabbitmq-plugins enable rabbitmq_management`) se abre
+`http://<ip-de-A>:15672` y se entra con `convitec`. Al arrancar las sedes aparecen el exchange `convitec` y
+las colas `sede.LIB`, `sede.ALA`, `sede.SJO` y `sede.LIM`.
+
+## Mensajes entre sedes
+
+Todas las sedes publican en el exchange `convitec` de tipo *fanout*, que copia cada mensaje a la cola de
+cada sede (`sede.<CODIGO>`). Cada sede lee su cola e ignora los mensajes que ella misma envió, los que son
+para otra sede, los que traen JSON roto y los de un tipo desconocido. Las colas son durables: si una sede
+está apagada, sus mensajes la esperan y los procesa en orden al arrancar.
+
+Los mensajes son JSON planos, por ejemplo `{ "tipo": "RESERVAR", "de": "ALA", "para": "LIM", "pedidoId": "ALA-1001", "codigo": "P02", "cantidad": 3 }`.
+
+| Tipo | De → para | Qué hace quien lo recibe |
+|---|---|---|
+| `HOLA` | la sede que arranca → `TODOS` | responde un `STOCK` por producto |
+| `STOCK` | la sede dueña → `TODOS` o una sede | actualiza su copia de la existencia de esa sede |
+| `RESERVAR` | la sede del pedido → la sede dueña | si alcanza, rebaja y guarda la reserva; responde `RESPUESTA` |
+| `RESPUESTA` | la sede dueña → la sede del pedido | `ok: true`, o `ok: false` con el `motivo` |
+| `CONFIRMAR` | la sede del pedido → cada sede participante | la reserva queda rebajada |
+| `LIBERAR` | la sede del pedido → cada sede participante | devuelve las unidades reservadas |
+
+Reglas:
+
+- **Solo la sede dueña cambia su existencia.** Las demás tienen una copia que solo cambia con `STOCK`.
+  Así dos sedes nunca venden la misma unidad: si dos pedidos piden lo último, la sede dueña atiende un
+  `RESERVAR` a la vez y al segundo le responde que no.
+- Un pedido espera las respuestas como máximo **5 segundos**. Si una sede no contesta (por ejemplo, está
+  apagada), el pedido se cancela y se envía `LIBERAR` a todas las participantes.
+- `CONFIRMAR` y `LIBERAR` repetidos no hacen nada la segunda vez, y un `RESERVAR` de un pedido que ya se
+  cerró se rechaza (pasa cuando la sede apagada arranca y procesa mensajes viejos).
 
 ## API REST
 
